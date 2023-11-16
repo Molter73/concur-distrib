@@ -95,7 +95,22 @@ class Worker implements Runnable {
 
 			switch (option) {
 				case ECHO:
-					output.println("TODO");
+					Activity activity = new Echo();
+					String in;
+					String out = activity.init();
+					while (activity.getStatus()) {
+						output.println(out);
+						output.flush();
+
+						try {
+							in = input.readLine();
+						} catch (IOException e) {
+							e.printStackTrace();
+							return;
+						}
+
+						out = activity.run(in);
+					}
 					break;
 				case QUIT:
 					System.out.println("Cerrando worker");
