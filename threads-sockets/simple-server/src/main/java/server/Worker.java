@@ -6,6 +6,18 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+class ClientDisconnectedException extends Exception {
+	ClientDisconnectedException(String msg) {
+		super(msg);
+	}
+}
+
+class InvalidInputException extends Exception {
+	InvalidInputException(String msg) {
+		super(msg);
+	}
+}
+
 class Worker implements Runnable {
 	private Socket socket;
 	private BufferedReader input;
@@ -18,30 +30,39 @@ class Worker implements Runnable {
 	}
 
 	private enum Options {
-		ECHO,
-		QUIT,
-		CLIENT_DISCONNECTED,
-		INVALID,
+		ECHO {
+			@Override
+			public String toString() {
+				return "Eco";
+			}
+		},
+		QUIT {
+			@Override
+			public String toString() {
+				return "Salir";
+			}
+		},
 	}
 
-	private Options menu() throws IOException {
+	private Options menu() throws IOException, InvalidInputException, ClientDisconnectedException {
 		output.println("Seleccione una opción:");
-		output.println("1. Eco");
-		output.println("2. Salir");
+		int count = 1;
+		for (Options option : Options.values()) {
+			output.println(count + ". " + option.toString());
+			count++;
+		}
 		output.flush();
 
 		String line = input.readLine();
 		if (line == null) {
-			System.out.println("Cliente desconectado");
-			return Options.CLIENT_DISCONNECTED;
+			throw new ClientDisconnectedException("Cliente desconectado");
 		}
 
 		int option;
 		try {
 			option = Integer.parseInt(line);
 		} catch (NumberFormatException e) {
-			System.out.println("Recibida opción no numérica");
-			return Options.INVALID;
+			throw new InvalidInputException("Recibida opción no numérica");
 		}
 
 		switch (option) {
@@ -50,7 +71,7 @@ class Worker implements Runnable {
 			case 2:
 				return Options.QUIT;
 			default:
-				return Options.INVALID;
+				throw new InvalidInputException("Opción fuera de rango");
 		}
 	}
 
@@ -61,6 +82,12 @@ class Worker implements Runnable {
 		while (socket.isConnected()) {
 			try {
 				option = menu();
+			} catch (InvalidInputException e) {
+				System.out.println(e.getMessage());
+				continue;
+			} catch (ClientDisconnectedException e) {
+				System.out.println(e.getMessage());
+				return;
 			} catch (IOException e) {
 				System.out.println("Error de IO");
 				return;
@@ -82,12 +109,6 @@ class Worker implements Runnable {
 					}
 
 					return;
-				case CLIENT_DISCONNECTED:
-					System.out.println("Conexión terminada por el cliente");
-					return;
-				case INVALID:
-					output.println("Opción inválida");
-					break;
 			}
 		}
 	}
