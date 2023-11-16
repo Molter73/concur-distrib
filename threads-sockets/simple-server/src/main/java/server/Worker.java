@@ -36,6 +36,12 @@ class Worker implements Runnable {
 				return "Eco";
 			}
 		},
+		ROCK_PAPER_SCISSOR {
+			@Override
+			public String toString() {
+				return "Piedra, papel o tijeras!";
+			}
+		},
 		QUIT {
 			@Override
 			public String toString() {
@@ -69,6 +75,8 @@ class Worker implements Runnable {
 			case 1:
 				return Options.ECHO;
 			case 2:
+				return Options.ROCK_PAPER_SCISSOR;
+			case 3:
 				return Options.QUIT;
 			default:
 				throw new InvalidInputException("Opción fuera de rango");
@@ -93,24 +101,14 @@ class Worker implements Runnable {
 				return;
 			}
 
+			Activity activity;
+
 			switch (option) {
 				case ECHO:
-					Activity activity = new Echo();
-					String in;
-					String out = activity.init();
-					while (activity.getStatus()) {
-						output.println(out);
-						output.flush();
-
-						try {
-							in = input.readLine();
-						} catch (IOException e) {
-							e.printStackTrace();
-							return;
-						}
-
-						out = activity.run(in);
-					}
+					activity = new Echo();
+					break;
+				case ROCK_PAPER_SCISSOR:
+					activity = new RockPaperScissor();
 					break;
 				case QUIT:
 					System.out.println("Cerrando worker");
@@ -124,7 +122,29 @@ class Worker implements Runnable {
 					}
 
 					return;
+				default:
+					return;
 			}
+
+			runActivity(activity);
+		}
+	}
+
+	private void runActivity(Activity activity) {
+		String in;
+		String out = activity.init();
+		while (activity.getStatus()) {
+			output.println(out);
+			output.flush();
+
+			try {
+				in = input.readLine();
+			} catch (IOException e) {
+				e.printStackTrace();
+				return;
+			}
+
+			out = activity.run(in);
 		}
 	}
 }
