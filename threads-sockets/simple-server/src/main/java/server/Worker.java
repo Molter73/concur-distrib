@@ -42,6 +42,12 @@ class Worker implements Runnable {
 				return "Piedra, papel o tijeras!";
 			}
 		},
+		FORTUNE {
+			@Override
+			public String toString() {
+				return "Léeme mi fortuna";
+			}
+		},
 		QUIT {
 			@Override
 			public String toString() {
@@ -77,6 +83,8 @@ class Worker implements Runnable {
 			case 2:
 				return Options.ROCK_PAPER_SCISSOR;
 			case 3:
+				return Options.FORTUNE;
+			case 4:
 				return Options.QUIT;
 			default:
 				throw new InvalidInputException("Opción fuera de rango");
@@ -109,6 +117,9 @@ class Worker implements Runnable {
 					break;
 				case ROCK_PAPER_SCISSOR:
 					activity = new RockPaperScissor();
+					break;
+				case FORTUNE:
+					activity = new Fortune();
 					break;
 				case QUIT:
 					System.out.println("Cerrando worker");
