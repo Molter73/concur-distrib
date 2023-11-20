@@ -48,6 +48,12 @@ class Worker implements Runnable {
 				return "Léeme mi fortuna";
 			}
 		},
+		POKEDEX {
+			@Override
+			public String toString() {
+				return "Pokedex";
+			}
+		},
 		QUIT {
 			@Override
 			public String toString() {
@@ -85,6 +91,8 @@ class Worker implements Runnable {
 			case 3:
 				return Options.FORTUNE;
 			case 4:
+				return Options.POKEDEX;
+			case 5:
 				return Options.QUIT;
 			default:
 				throw new InvalidInputException("Opción fuera de rango");
@@ -120,6 +128,9 @@ class Worker implements Runnable {
 					break;
 				case FORTUNE:
 					activity = new Fortune();
+					break;
+				case POKEDEX:
+					activity = new Pokedex();
 					break;
 				case QUIT:
 					System.out.println("Cerrando worker");
