@@ -8,9 +8,18 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 class Client {
-	public static void main(String[] args) throws UnknownHostException, IOException {
-		try (Socket socket = new Socket("localhost", 8888)) {
+	private static final int DEFAULT_PORT = 8888;
+	private static final String DEFAULT_ADDRESS = "localhost";
+
+	private static void run(String address, int port) throws UnknownHostException, IOException {
+		try (Socket socket = new Socket(address, port)) {
 			System.out.println("Iniciando cliente");
 
 			Scanner stdin = new Scanner(System.in);
@@ -44,5 +53,26 @@ class Client {
 
 			stdin.close();
 		}
+	}
+
+	public static void main(String[] args) throws UnknownHostException, IOException, ParseException {
+		Options options = new Options();
+		options.addOption("p", "port", true, "Puerto utilizado por el servidor. Default: 8888");
+		options.addOption("a", "address", true, "Dirección del servidor. Default: localhost");
+
+		CommandLineParser parser = new DefaultParser();
+		CommandLine cli = parser.parse(options, args);
+
+		int port = DEFAULT_PORT;
+		if (cli.hasOption('p')) {
+			port = Integer.parseInt(cli.getOptionValue('p'));
+		}
+
+		String address = DEFAULT_ADDRESS;
+		if (cli.hasOption('a')) {
+			address = cli.getOptionValue('a');
+		}
+
+		run(address, port);
 	}
 }
