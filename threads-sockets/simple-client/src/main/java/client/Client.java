@@ -18,6 +18,20 @@ class Client {
 	private static final int DEFAULT_PORT = 8888;
 	private static final String DEFAULT_ADDRESS = "localhost";
 
+	/**
+	 * Runs the main loop for the client.
+	 * <p>
+	 * The loop will print all received data from the server to stdout and
+	 * then wait for the user to input a line of text.
+	 * This method will block until the connection us closed by the server.
+	 * There is no "special sauce" in the client, all logic is handled by the
+	 * server.
+	 *
+	 * @param address The IP address the server listens on.
+	 * @param port    The port the server listens on.
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
 	private static void run(String address, int port) throws UnknownHostException, IOException {
 		try (Socket socket = new Socket(address, port)) {
 			System.out.println("Iniciando cliente");
@@ -55,6 +69,16 @@ class Client {
 		}
 	}
 
+	/**
+	 * Entry point for the client.
+	 * <p>
+	 * This method will parse CLI arguments and delegate execution to {@link run}.
+	 *
+	 * @param args
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 * @throws ParseException
+	 */
 	public static void main(String[] args) throws UnknownHostException, IOException, ParseException {
 		Options options = new Options();
 		options.addOption("p", "port", true, "Puerto utilizado por el servidor. Default: 8888");

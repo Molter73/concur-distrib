@@ -62,6 +62,14 @@ class Worker implements Runnable {
 		},
 	}
 
+	/**
+	 * Shows available options and gets an option from the user
+	 *
+	 * @return The selected {@link Options}.
+	 * @throws IOException
+	 * @throws InvalidInputException
+	 * @throws ClientDisconnectedException
+	 */
 	private Options menu() throws IOException, InvalidInputException, ClientDisconnectedException {
 		output.println("Seleccione una opción:");
 		int count = 1;
@@ -152,6 +160,18 @@ class Worker implements Runnable {
 		}
 	}
 
+	/**
+	 * Runs an {@link Activity} in a loop until it is done.
+	 * <p>
+	 * When starting a new Activity, its <code>init</code> metod is called so
+	 * initialization can be done and an initial message provided to the client.
+	 * After initialization is done, a line will be captured from the client on
+	 * each loop, passed in to the <code>run</code> method and its output will
+	 * be sent to the client. The activity will continue to be executed until
+	 * the <code>getStatus</code> method returns false.
+	 *
+	 * @param activity A class that implements the {@link Activity} interface.
+	 */
 	private void runActivity(Activity activity) {
 		String in;
 		String out = activity.init();
