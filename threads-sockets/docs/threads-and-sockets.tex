@@ -1,0 +1,104 @@
+\documentclass[a4paper]{article}
+
+\usepackage{titling}
+\usepackage{fullpage}
+\usepackage{fontenc}
+\usepackage{mathptmx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{parskip}
+
+\renewcommand{\contentsname}{Contenidos}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\urlstyle{same}
+
+\begin{document}
+
+\title{Hilos y sockets}
+\author{Moltrasio, Mauro Ezequiel}
+\date{}
+\renewcommand{\abstractname}{\vspace{-\baselineskip}}
+
+\begin{titlingpage}
+    \maketitle
+    \begin{abstract}
+
+        Clase: Programación concurrente y distribuida.
+
+        Actividad 1: Hilos y socket.
+
+        Profesor: José Delgado Pérez.
+    \end{abstract}
+\end{titlingpage}
+
+\maketitle
+\tableofcontents
+
+\section{Introducción}
+
+Este documento detalla la implementación de un servidor que maneja conexiones
+concurrentes de clientes simples.
+
+\section{Implementación}
+
+La implementación de la solución es un proyecto maven con dos submódulos, un
+cliente y un servidor.
+
+\subsection{Cliente}
+
+El cliente consiste de una sola clase, encargada de realizar la conexión al
+servidor, enviar los mensajes ingresados por el usuario y mostrar por pantalla
+las respuestas del servidor.
+
+\subsection{Servidor}
+
+El servidor abre un socket y se mantiene escuchando por conexiones. Cada vez
+que un cliente realiza una conexión, el servidor crea un nuevo hilo trabajador
+(Worker) y este será el encargado de manejar toda la comunicación con ese
+cliente.
+
+\subsection{Worker}
+
+Esta clase implementa la interfaz Runnable y es la encargada de manejar
+la comunicación con los clientes. De esta manera, se conseguirá que se aíslen
+las comunicaciones y se simplifica la codificación, ya que no debemos mantener
+un registro del estado de cada cliente, el worker está dedicado y es
+independiente del resto de conexiones.
+
+Para ofrecer una serie de tareas sencillas a los clientes, se creó una
+interface Activity que el worker utiliza para realizar un manejo generico
+del estado. Se implementaron 4 actividades con las que el cliente puede
+interactuar, la quinta opción requerida es cerrar la comunicación.
+
+\begin{figure}[H]
+    \centering
+    \scalebox{.6}{
+        \input{build/uml.tex}
+    }
+\end{figure}
+
+\section{Lecciones aprendidas}
+
+Llevo varios años trabajando en entornos multi-hilo, por lo que no puedo
+afirmar haber aprendido demasiado más allá de los mecanismos específicos de
+Java para la creación de hilos. Sin embargo, siempre es bueno volver a las
+bases y repasar.
+
+\section{Repositorio}
+
+El repositorio contendrá el código de todas las tareas de la materia en
+subdirectorios. Se decidió este enfoque en lugar de un repositorio por proyecto
+porque mi cuenta ya tiene demasiados repositorios.
+
+https://github.com/Molter73/concur-distrib/tree/main/threads-sockets
+
+\end{document}
