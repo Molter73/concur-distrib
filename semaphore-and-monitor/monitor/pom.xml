@@ -5,10 +5,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>molter</groupId>
-  <artifactId>semaphore</artifactId>
+  <artifactId>monitor</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>semaphore</name>
+  <name>monitor</name>
   <url>github.com/molter73/concur-distrib</url>
 
   <properties>
@@ -55,7 +55,7 @@
               <manifest>
                 <addClasspath>true</addClasspath>
                 <classpathPrefix>libs/</classpathPrefix>
-                <mainClass>semaphore.App</mainClass>
+                <mainClass>monitor.App</mainClass>
               </manifest>
             </archive>
           </configuration>
