@@ -1,0 +1,115 @@
+\documentclass[a4paper]{article}
+
+\usepackage{titling}
+\usepackage{fullpage}
+\usepackage{fontenc}
+\usepackage{mathptmx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{parskip}
+
+\renewcommand{\contentsname}{Contenidos}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\urlstyle{same}
+
+\begin{document}
+
+\title{Semáforos y monitores}
+\author{Moltrasio, Mauro Ezequiel}
+\date{}
+\renewcommand{\abstractname}{\vspace{-\baselineskip}}
+
+\begin{titlingpage}
+    \maketitle
+    \begin{abstract}
+
+        Clase: Programación concurrente y distribuida.
+
+        Actividad 2: Semáforos y monitores.
+
+        Profesor: José Delgado Pérez.
+    \end{abstract}
+\end{titlingpage}
+
+\maketitle
+\tableofcontents
+
+\section{Introducción}
+
+En este documento se detallará la implementación de un proyecto en dos partes.
+La primera parte es un manejador de recurso multi-hilo basado en un semáforo
+binario, y la segunda es el manejo de acceso a un recurso compartido a través
+de un monitor.
+
+La implementación de la solución es un proyecto maven con dos submódulos.
+El proyecto utiliza Java 1.8, las versiones espcíficas utilizadas son:
+
+\begin{itemize}
+    \item java version "1.8.0\_361"
+    \item Java(TM) SE Runtime Environment (build 1.8.0\_361-b09)
+\end{itemize}
+
+\section{Semáforo binario}
+
+En esta parte de la actividad se implementó un control de acceso multi-hilo a
+un recurso ficticio mediante el uso de un semáforo binario. La solución cuenta
+con una dos clases:
+\begin{itemize}
+    \item Process: Lanza una nueva hebra e intenta reservar y liberar recursos
+    \item Resource: Controla el acceso a un recurso compartido.
+\end{itemize}
+
+De esta manera, la clase App que contiene el método main crea 4 hebras de la
+clase Process y estas comienzan a reservar y liberar recursos llamando a los
+métodos reserve y free de la clase estática Resource. Estos métodos a su vez
+utilizan un semáforo binario para asegurar que la asignación de recursos no
+posee condiciones de carrera.
+
+\section{Monitor}
+
+En esta actividad se simuló el acceso a un puente. Para esto se creó una clase
+BridgeMonitor que utiliza un monitor para sincronizar el acceso al mismo. Este
+monitor tiene dos métodos:
+
+\begin{itemize}
+    \item getOn: Toma el sentido en el que un auto intenta acceder al puente
+        y decide si esta hebra debe esperar o está habilitada a subir al puente.
+    \item getOff: Una vez se termina de cruzar el puente, este método retira
+        el automóvil del mismo. Una vez se hayan bajado todos los automóviles,
+        se marca el puente como vacío y se notifica a las hebras que puedan
+        estar esperando para que comiencen su cruce.
+\end{itemize}
+
+La clase Car simplemente toma un monitor al crearse, decide un sentido de
+circulación de forma aleatoria (sur-norte o norte-sur) y lanza una hebra que
+intenta cruzar el puente.
+
+Finalmente, la clase App es el punto de entrada principal, crea 100 autos a la
+vez y estos realizan el cruce de forma ordenada gracias al monitor.
+
+\section{Lecciones aprendidas}
+
+Llevo varios años trabajando en entornos multi-hilo en distintos lenguajes, por
+lo que el concepto de semáforo binario no es nuevo para mi. Sin embargo, al no
+estar tan familiarizado con Java, es la primera vez que trabajo con monitores,
+es un concepto interesante el tener métodos "auto-sincronizados", pero a fines
+prácticos no lo veo tan diferente a utilizar mutex de forma explícita.
+
+\section{Repositorio}
+
+El repositorio contendrá el código de todas las tareas de la materia en
+subdirectorios. Se decidió este enfoque en lugar de un repositorio por proyecto
+porque mi cuenta ya tiene demasiados repositorios.
+
+https://github.com/Molter73/concur-distrib/tree/main/semaphore-and-monitor
+
+\end{document}
