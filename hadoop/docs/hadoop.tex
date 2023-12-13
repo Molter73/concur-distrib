@@ -1,0 +1,470 @@
+\documentclass[a4paper]{article}
+
+\usepackage{titling}
+\usepackage{fullpage}
+\usepackage{fontenc}
+\usepackage{listings}
+\usepackage{mathptmx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{parskip}
+
+\renewcommand{\contentsname}{Contenidos}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\urlstyle{same}
+
+\begin{document}
+
+\title{Hadoop}
+\author{Moltrasio, Mauro Ezequiel}
+\date{}
+\renewcommand{\abstractname}{\vspace{-\baselineskip}}
+
+\begin{titlingpage}
+    \maketitle
+    \begin{abstract}
+
+        Clase: Programación concurrente y distribuida.
+
+        Actividad 3: Hadoop.
+
+        Profesor: José Delgado Pérez.
+    \end{abstract}
+\end{titlingpage}
+
+\maketitle
+\tableofcontents
+
+\section{Introducción}
+
+En este documento se detallarán los pasos tomados para realizar la
+implementación de una aplicación MapReduce para contar severidades de logs en
+un archivo. Para esto se utilizó la imagen docker.io/cloudera/quickstart:latest
+como base y se la modificó para ejecutar nuestra aplicación.
+
+\section{Implementación del código}
+
+Como se adelantaba en la introducción, se utilizó la imagen
+docker.io/cloudera/quickstart:latest que provee un proyecto esqueleto que se
+puede modificar para cumplir con nuestro objetivo. Se tomaron las clases
+StubDriver, StubMapper y StubReducer, renombrándolas reemplazando Stub por
+LogCounter y se procedió a modificarlas.
+
+Primero se modificó la clase LogCounterMapper para que utilice un regex,
+capturando la severidad del log y emitiendo un par clave-valor donde:
+
+\begin{itemize}
+    \item Clave es el valor de la severidad extraída por el regex
+    \item Valor siempre es igual a 1.
+\end{itemize}
+
+La clase LogCounterReducer simplemente tomará la salida de LogCounterMapper y
+sumará los valores. Al ser que los valores siempre son 1, el resultado final
+será la cuenta de ocurrencias de cada severidad en el log.
+
+Finalmente, la clase LogCounterDriver realiza toda la configuración necesaria
+para ejecutar el trabajo MapReduce y emitir el resultado.
+
+\section{Modificación de la imagen del contenedor}
+
+Para simplificar la ejecución del código y garantizar que la compilación del
+mismo sea consistente, se creó un archivo Dockerfile con dos etapas. La primera
+realiza la compilación de las clases y crea un jar. La segunda modifica la
+imagen docker.io/cloudera/quickstart:latest con el jar generado y agregando
+un script entrypoint.sh encargado de iniciar el ambiente y ejecutar el trabajo
+MapReduce. Para crear dicha imagen basta con ejecutar el siguiente comando en
+la raíz del proyecto:
+
+\begin{lstlisting}[
+    language=bash,
+    basicstyle=\small
+]
+ $ docker build .
+\end{lstlisting}
+
+La salida de dicho comando es la siguiente:
+
+\begin{lstlisting}[
+    language=bash,
+    basicstyle=\small
+]
+[1/2] STEP 1/5: FROM cloudera/quickstart:latest AS builder
+[1/2] STEP 2/5: COPY src/ src/
+--> c0a02d8eea25
+[1/2] STEP 3/5: RUN mkdir -p target/
+--> bf153e48b178
+[1/2] STEP 4/5: RUN javac -cp /usr/lib/hadoop/*:/usr/lib/hadoop-mapreduce/* src/*.java -d target/ -Xlint
+warning: [path] bad path element "/usr/lib/hadoop-mapreduce/jaxb-api.jar": no such file or directory
+warning: [path] bad path element "/usr/lib/hadoop-mapreduce/activation.jar": no such file or directory
+warning: [path] bad path element "/usr/lib/hadoop-mapreduce/jsr173_1.0_api.jar": no such file or directory
+warning: [path] bad path element "/usr/lib/hadoop-mapreduce/jaxb1-impl.jar": no such file or directory
+4 warnings
+--> dcff47880e50
+[1/2] STEP 5/5: RUN jar -cvf logcounter.jar -C target/ .
+added manifest
+adding: LogCounterDriver.class(in = 1707) (out= 863)(deflated 49%)
+adding: LogCounterMapper.class(in = 2005) (out= 851)(deflated 57%)
+adding: LogCounterReducer.class(in = 1604) (out= 669)(deflated 58%)
+--> 90bc1588b9c4
+[2/2] STEP 1/7: FROM cloudera/quickstart:latest
+[2/2] STEP 2/7: RUN mkdir -p /workspace/input
+--> 8bc88ef1dea5
+[2/2] STEP 3/7: RUN mkdir -p /workspace/output
+--> a4b682ed1b47
+[2/2] STEP 4/7: WORKDIR /workspace
+--> eab8cd216cf0
+[2/2] STEP 5/7: COPY --from=builder logcounter.jar .
+--> 20a79ef8ef68
+[2/2] STEP 6/7: COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+--> 2de06451a276
+[2/2] STEP 7/7: ENTRYPOINT entrypoint.sh
+[2/2] COMMIT quay.io/mmoltras/cloudera
+--> a8e1ad4ec23c
+Successfully tagged quay.io/mmoltras/cloudera:latest
+a8e1ad4ec23c17b405cb082fb63f18a28ffdc9b5b6a29620394acd12c9f734df
+\end{lstlisting}
+
+La imagen también se ha publicado en un registro público bajo el tag:
+quay.io/mmoltras/cloudera:latest
+
+\section{Ejecución del contenedor}
+
+Al no tener acceso a un archivo de log con la salida querida, se creó un script
+log-generator.py que se puede utilizar para generar dicho archivo. Una vez
+creado el archivo de log, basta con montar el directorio que lo contiene en
+el contenedor bajo la ruta /workspace/input y el script entrypoint.sh se
+encargará de inicializar el ambiente y ejecutar el trabajo MapReduce.
+
+El comando para ejecutar el contenedor quedaría como se ve a continuación:
+
+\begin{lstlisting}[
+    language=bash,
+    basicstyle=\small
+]
+ $ docker run --rm --hostname=quickstart.cloudera --privileged -v /path/to/dir/holding/log:/workspace/input quay.io/mmoltras/cloudera
+\end{lstlisting}
+
+Una vez termina la ejecución se tendrá la cantidad de severidades que se
+encontraron en la terminal:
+
+\begin{lstlisting}[
+    language=bash,
+    basicstyle=\small
+]
++ hadoop fs -cat '/workspace/output/*'
+INFO    31
+SEVERE  36
+WARN    33
+\end{lstlisting}
+
+La salida completa del contenedor es muy extensa, por lo que se agregará en un
+anexo a parte.
+
+\section{Repositorio}
+
+El repositorio contendrá el código de todas las tareas de la materia en
+subdirectorios. Se decidió este enfoque en lugar de un repositorio por proyecto
+porque mi cuenta ya tiene demasiados repositorios.
+
+https://github.com/Molter73/concur-distrib/tree/main/hadoop
+
+\appendix
+\section{Salida de ejecución del contenedor}
+\begin{lstlisting}[
+    language=bash,
+    basicstyle=\small
+]
++ DAEMONS='    mysqld     cloudera-quickstart-init     zookeeper-server     hadoop-hdfs-datanode     hadoop-hdfs-journalnode     hadoop-hdfs-namenode     hadoop-hdfs-secondarynamenode     hadoop-httpfs     hadoop-mapreduce-historyserver     hadoop-yarn-nodemanager     hadoop-yarn-resourcemanager     hbase-master     hbase-rest     hbase-thrift     hive-metastore     hive-server2     sqoop2-server     spark-history-server     hbase-regionserver     impala-state-store     oozie     solr-server     impala-catalog     impala-server'
++ for daemon in '${DAEMONS}'
++ sudo service mysqld start
+Starting mysqld:  [  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service cloudera-quickstart-init start
+
+if [ "$1" == "start" ] ; then
+    if [ "${EC2}" == 'true' ]; then
+        FIRST_BOOT_FLAG=/var/lib/cloudera-quickstart/.ec2-key-installed
+        if [ ! -f "${FIRST_BOOT_FLAG}" ]; then
+            METADATA_API=http://169.254.169.254/latest/meta-data
+            KEY_URL=${METADATA_API}/public-keys/0/openssh-key
+            SSH_DIR=/home/cloudera/.ssh
+            mkdir -p ${SSH_DIR}
+            chown cloudera:cloudera ${SSH_DIR}
+            curl ${KEY_URL} >> ${SSH_DIR}/authorized_keys
+            touch ${FIRST_BOOT_FLAG}
+        fi
+    fi
+    if [ "${DOCKER}" != 'true' ]; then
+        if [ -f /sys/kernel/mm/redhat_transparent_hugepage/defrag ]; then
+            echo never > /sys/kernel/mm/redhat_transparent_hugepage/defrag
+        fi
+
+        cloudera-quickstart-ip
+        HOSTNAME=quickstart.cloudera
+        hostname ${HOSTNAME}
+        sed -i -e "s/HOSTNAME=.*/HOSTNAME=${HOSTNAME}/" /etc/sysconfig/network
+    fi
+
+    (
+        cd /var/lib/cloudera-quickstart/tutorial;
+        nohup python -m SimpleHTTPServer 80 &
+    )
+
+    # TODO: check for expired CM license and update config.js accordingly
+fi
++ '[' start == start ']'
++ '[' '' == true ']'
++ '[' true '!=' true ']'
++ cd /var/lib/cloudera-quickstart/tutorial
++ nohup python -m SimpleHTTPServer 80
+
++ for daemon in '${DAEMONS}'
++ sudo service zookeeper-server start
+JMX enabled by default
+Using config: /etc/zookeeper/conf/zoo.cfg
+Starting zookeeper ... STARTED
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-hdfs-datanode start
+starting datanode, logging to /var/log/hadoop-hdfs/hadoop-hdfs-datanode-quickstart.cloudera.out
+Started Hadoop datanode (hadoop-hdfs-datanode):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-hdfs-journalnode start
+starting journalnode, logging to /var/log/hadoop-hdfs/hadoop-hdfs-journalnode-quickstart.cloudera.out
+Started Hadoop journalnode:[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-hdfs-namenode start
+starting namenode, logging to /var/log/hadoop-hdfs/hadoop-hdfs-namenode-quickstart.cloudera.out
+Started Hadoop namenode:[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-hdfs-secondarynamenode start
+starting secondarynamenode, logging to /var/log/hadoop-hdfs/hadoop-hdfs-secondarynamenode-quickstart.cloudera.out
+Started Hadoop secondarynamenode:[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-httpfs start
+
+Setting HTTPFS_HOME:          /usr/lib/hadoop-httpfs
+Using   HTTPFS_CONFIG:        /etc/hadoop-httpfs/conf
+Sourcing:                    /etc/hadoop-httpfs/conf/httpfs-env.sh
+Using   HTTPFS_LOG:           /var/log/hadoop-httpfs/
+Using   HTTPFS_TEMP:           /var/run/hadoop-httpfs
+Setting HTTPFS_HTTP_PORT:     14000
+Setting HTTPFS_ADMIN_PORT:     14001
+Setting HTTPFS_HTTP_HOSTNAME: quickstart.cloudera
+Setting HTTPFS_SSL_ENABLED: false
+Setting HTTPFS_SSL_KEYSTORE_FILE:     /var/lib/hadoop-httpfs/.keystore
+Setting HTTPFS_SSL_KEYSTORE_PASS:     password
+Using   CATALINA_BASE:       /var/lib/hadoop-httpfs/tomcat-deployment
+Using   HTTPFS_CATALINA_HOME:       /usr/lib/bigtop-tomcat
+Setting CATALINA_OUT:        /var/log/hadoop-httpfs//httpfs-catalina.out
+Using   CATALINA_PID:        /var/run/hadoop-httpfs/hadoop-httpfs-httpfs.pid
+
+Using   CATALINA_OPTS:
+Adding to CATALINA_OPTS:     -Dhttpfs.home.dir=/usr/lib/hadoop-httpfs -Dhttpfs.config.dir=/etc/hadoop-httpfs/conf -Dhttpfs.log.dir=/var/log/hadoop-httpfs/ -Dhttpfs.temp.dir=/var/run/hadoop-httpfs -Dhttpfs.admin.port=14001 -Dhttpfs.http.port=14000 -Dhttpfs.http.hostname=quickstart.cloudera
+Started Hadoop httpfs (hadoop-httpfs):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-mapreduce-historyserver start
+starting historyserver, logging to /var/log/hadoop-mapreduce/mapred-mapred-historyserver-quickstart.cloudera.out
+23/12/13 17:42:28 INFO hs.JobHistoryServer: STARTUP_MSG:
+/************************************************************
+STARTUP_MSG: Starting JobHistoryServer
+STARTUP_MSG:   host = quickstart.cloudera/10.88.0.7
+STARTUP_MSG:   args = []
+STARTUP_MSG:   version = 2.6.0-cdh5.7.0
+STARTUP_MSG:   classpath = ...
+STARTUP_MSG:   build = http://github.com/cloudera/hadoop -r c00978c67b0d3fe9f3b896b5030741bd40bf541a; compiled by 'jenkins' on 2016-03-23T18:36Z
+STARTUP_MSG:   java = 1.7.0_67
+************************************************************/
+Started Hadoop historyserver:[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-yarn-nodemanager start
+starting nodemanager, logging to /var/log/hadoop-yarn/yarn-yarn-nodemanager-quickstart.cloudera.out
+Started Hadoop nodemanager:[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hadoop-yarn-resourcemanager start
+starting resourcemanager, logging to /var/log/hadoop-yarn/yarn-yarn-resourcemanager-quickstart.cloudera.out
+Started Hadoop resourcemanager:[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hbase-master start
+starting master, logging to /var/log/hbase/hbase-hbase-master-quickstart.cloudera.out
+Started HBase master daemon (hbase-master):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hbase-rest start
+starting rest, logging to /var/log/hbase/hbase-hbase-rest-quickstart.cloudera.out
+Started HBase rest daemon (hbase-rest):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hbase-thrift start
+starting thrift, logging to /var/log/hbase/hbase-hbase-thrift-quickstart.cloudera.out
+Started HBase thrift daemon (hbase-thrift):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hive-metastore start
+Starting Hive Metastore (hive-metastore):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hive-server2 start
+Started Hive Server2 (hive-server2):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service sqoop2-server start
+Starting Sqoop Server:[  OK  ]
+Sqoop home directory: /usr/lib/sqoop2
+Setting SQOOP_HTTP_PORT:     12000
+Setting SQOOP_ADMIN_PORT:     12001
+Using   CATALINA_OPTS:       -Xmx1024m
+Adding to CATALINA_OPTS:    -Dsqoop.http.port=12000 -Dsqoop.admin.port=12001
++ for daemon in '${DAEMONS}'
++ sudo service spark-history-server start
+Starting Spark history-server (spark-history-server):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service hbase-regionserver start
+Starting Hadoop HBase regionserver daemon: starting regionserver, logging to /var/log/hbase/hbase-hbase-regionserver-quickstart.cloudera.out
+hbase-regionserver.
++ for daemon in '${DAEMONS}'
++ sudo service impala-state-store start
+Started Impala State Store Server (statestored):[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service oozie start
+
+Setting OOZIE_HOME:          /usr/lib/oozie
+Sourcing:                    /usr/lib/oozie/bin/oozie-env.sh
+  setting JAVA_LIBRARY_PATH="$JAVA_LIBRARY_PATH:/usr/lib/hadoop/lib/native"
+  setting OOZIE_DATA=/var/lib/oozie
+  setting OOZIE_CATALINA_HOME=/usr/lib/bigtop-tomcat
+  setting CATALINA_TMPDIR=/var/lib/oozie
+  setting CATALINA_PID=/var/run/oozie/oozie.pid
+  setting CATALINA_BASE=/var/lib/oozie/tomcat-deployment
+  setting OOZIE_HTTPS_PORT=11443
+  setting OOZIE_HTTPS_KEYSTORE_PASS=password
+  setting CATALINA_OPTS="$CATALINA_OPTS -Doozie.https.port=${OOZIE_HTTPS_PORT}"
+  setting CATALINA_OPTS="$CATALINA_OPTS -Doozie.https.keystore.pass=${OOZIE_HTTPS_KEYSTORE_PASS}"
+  setting CATALINA_OPTS="$CATALINA_OPTS -Xmx1024m"
+  setting OOZIE_CONFIG=/etc/oozie/conf
+  setting OOZIE_LOG=/var/log/oozie
+Using   OOZIE_CONFIG:        /etc/oozie/conf
+Sourcing:                    /etc/oozie/conf/oozie-env.sh
+  setting JAVA_LIBRARY_PATH="$JAVA_LIBRARY_PATH:/usr/lib/hadoop/lib/native"
+  setting OOZIE_DATA=/var/lib/oozie
+  setting OOZIE_CATALINA_HOME=/usr/lib/bigtop-tomcat
+  setting CATALINA_TMPDIR=/var/lib/oozie
+  setting CATALINA_PID=/var/run/oozie/oozie.pid
+  setting CATALINA_BASE=/var/lib/oozie/tomcat-deployment
+  setting OOZIE_HTTPS_PORT=11443
+  setting OOZIE_HTTPS_KEYSTORE_PASS=password
+  setting CATALINA_OPTS="$CATALINA_OPTS -Doozie.https.port=${OOZIE_HTTPS_PORT}"
+  setting CATALINA_OPTS="$CATALINA_OPTS -Doozie.https.keystore.pass=${OOZIE_HTTPS_KEYSTORE_PASS}"
+  setting CATALINA_OPTS="$CATALINA_OPTS -Xmx1024m"
+  setting OOZIE_CONFIG=/etc/oozie/conf
+  setting OOZIE_LOG=/var/log/oozie
+Setting OOZIE_CONFIG_FILE:   oozie-site.xml
+Using   OOZIE_DATA:          /var/lib/oozie
+Using   OOZIE_LOG:           /var/log/oozie
+Setting OOZIE_LOG4J_FILE:    oozie-log4j.properties
+Setting OOZIE_LOG4J_RELOAD:  10
+Setting OOZIE_HTTP_HOSTNAME: quickstart.cloudera
+Setting OOZIE_HTTP_PORT:     11000
+Setting OOZIE_ADMIN_PORT:     11001
+Using   OOZIE_HTTPS_PORT:     11443
+Setting OOZIE_BASE_URL:      http://quickstart.cloudera:11000/oozie
+Using   CATALINA_BASE:       /var/lib/oozie/tomcat-deployment
+Setting OOZIE_HTTPS_KEYSTORE_FILE:     /var/lib/oozie/.keystore
+Using   OOZIE_HTTPS_KEYSTORE_PASS:     password
+Setting OOZIE_INSTANCE_ID:       quickstart.cloudera
+Setting CATALINA_OUT:        /var/log/oozie/catalina.out
+Using   CATALINA_PID:        /var/run/oozie/oozie.pid
+
+Using   CATALINA_OPTS:        -Doozie.https.port=11443 -Doozie.https.keystore.pass=password -Xmx1024m -Doozie.https.port=11443 -Doozie.https.keystore.pass=password -Xmx1024m -Dderby.stream.error.file=/var/log/oozie/derby.log
+Adding to CATALINA_OPTS:     -Doozie.home.dir=/usr/lib/oozie -Doozie.config.dir=/etc/oozie/conf -Doozie.log.dir=/var/log/oozie -Doozie.data.dir=/var/lib/oozie -Doozie.instance.id=quickstart.cloudera -Doozie.config.file=oozie-site.xml -Doozie.log4j.file=oozie-log4j.properties -Doozie.log4j.reload=10 -Doozie.http.hostname=quickstart.cloudera -Doozie.admin.port=11001 -Doozie.http.port=11000 -Doozie.https.port=11443 -Doozie.base.url=http://quickstart.cloudera:11000/oozie -Doozie.https.keystore.file=/var/lib/oozie/.keystore -Doozie.https.keystore.pass=password -Djava.library.path=:/usr/lib/hadoop/lib/native:/usr/lib/hadoop/lib/native
+
++ for daemon in '${DAEMONS}'
++ sudo service solr-server start
+Starting Solr server daemon:[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service impala-catalog start
+Started Impala Catalog Server (catalogd) :[  OK  ]
++ for daemon in '${DAEMONS}'
++ sudo service impala-server start
+Started Impala Server (impalad):[  OK  ]
++ hadoop fs -mkdir -p /workspace/input
++ hadoop fs -put /workspace/input/test.log /workspace/input
++ hadoop jar /workspace/logcounter.jar LogCounterDriver /workspace/input /workspace/output
+23/12/13 17:43:26 INFO client.RMProxy: Connecting to ResourceManager at /0.0.0.0:8032
+23/12/13 17:43:27 INFO input.FileInputFormat: Total input paths to process : 1
+23/12/13 17:43:27 INFO mapreduce.JobSubmitter: number of splits:1
+23/12/13 17:43:27 INFO mapreduce.JobSubmitter: Submitting tokens for job: job_1702489362687_0001
+23/12/13 17:43:28 INFO impl.YarnClientImpl: Submitted application application_1702489362687_0001
+23/12/13 17:43:28 INFO mapreduce.Job: The url to track the job: http://quickstart.cloudera:8088/proxy/application_1702489362687_0001/
+23/12/13 17:43:28 INFO mapreduce.Job: Running job: job_1702489362687_0001
+23/12/13 17:43:43 INFO mapreduce.Job: Job job_1702489362687_0001 running in uber mode : false
+23/12/13 17:43:43 INFO mapreduce.Job:  map 0% reduce 0%
+23/12/13 17:43:54 INFO mapreduce.Job:  map 100% reduce 0%
+23/12/13 17:44:00 INFO mapreduce.Job:  map 100% reduce 100%
+23/12/13 17:44:00 INFO mapreduce.Job: Job job_1702489362687_0001 completed successfully
+23/12/13 17:44:00 INFO mapreduce.Job: Counters: 49
+        File System Counters
+                FILE: Number of bytes read=1180
+                FILE: Number of bytes written=229353
+                FILE: Number of read operations=0
+                FILE: Number of large read operations=0
+                FILE: Number of write operations=0
+                HDFS: Number of bytes read=3795
+                HDFS: Number of bytes written=26
+                HDFS: Number of read operations=6
+                HDFS: Number of large read operations=0
+                HDFS: Number of write operations=2
+        Job Counters
+                Launched map tasks=1
+                Launched reduce tasks=1
+                Data-local map tasks=1
+                Total time spent by all maps in occupied slots (ms)=7762
+                Total time spent by all reduces in occupied slots (ms)=3589
+                Total time spent by all map tasks (ms)=7762
+                Total time spent by all reduce tasks (ms)=3589
+                Total vcore-seconds taken by all map tasks=7762
+                Total vcore-seconds taken by all reduce tasks=3589
+                Total megabyte-seconds taken by all map tasks=7948288
+                Total megabyte-seconds taken by all reduce tasks=3675136
+        Map-Reduce Framework
+                Map input records=100
+                Map output records=100
+                Map output bytes=974
+                Map output materialized bytes=1180
+                Input split bytes=121
+                Combine input records=0
+                Combine output records=0
+                Reduce input groups=3
+                Reduce shuffle bytes=1180
+                Reduce input records=100
+                Reduce output records=3
+                Spilled Records=200
+                Shuffled Maps =1
+                Failed Shuffles=0
+                Merged Map outputs=1
+                GC time elapsed (ms)=90
+                CPU time spent (ms)=1590
+                Physical memory (bytes) snapshot=555298816
+                Virtual memory (bytes) snapshot=2749214720
+                Total committed heap usage (bytes)=754974720
+        Shuffle Errors
+                BAD_ID=0
+                CONNECTION=0
+                IO_ERROR=0
+                WRONG_LENGTH=0
+                WRONG_MAP=0
+                WRONG_REDUCE=0
+        File Input Format Counters
+                Bytes Read=3674
+        File Output Format Counters
+                Bytes Written=26
++ hadoop fs -cat '/workspace/output/*'
+INFO    38
+SEVERE  37
+WARN    25
+\end{lstlisting}
+
+\end{document}
