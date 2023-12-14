@@ -10,6 +10,7 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{parskip}
+\usepackage[none]{hyphenat}
 
 \renewcommand{\contentsname}{Contenidos}
 
@@ -48,13 +49,13 @@
 
 En este documento se detallarán los pasos tomados para realizar la
 implementación de una aplicación MapReduce para contar severidades de logs en
-un archivo. Para esto se utilizó la imagen docker.io/cloudera/quickstart:latest
+un archivo. Para esto se utilizó la imagen cloudera/quickstart:latest
 como base y se la modificó para ejecutar nuestra aplicación.
 
 \section{Implementación del código}
 
 Como se adelantaba en la introducción, se utilizó la imagen
-docker.io/cloudera/quickstart:latest que provee un proyecto esqueleto que se
+cloudera/quickstart:latest que provee un proyecto esqueleto que se
 puede modificar para cumplir con nuestro objetivo. Se tomaron las clases
 StubDriver, StubMapper y StubReducer, renombrándolas reemplazando Stub por
 LogCounter y se procedió a modificarlas.
@@ -63,7 +64,7 @@ Primero se modificó la clase LogCounterMapper para que utilice un regex,
 capturando la severidad del log y emitiendo un par clave-valor donde:
 
 \begin{itemize}
-    \item Clave es el valor de la severidad extraída por el regex
+    \item Clave es el valor de la severidad extraída por el regex.
     \item Valor siempre es igual a 1.
 \end{itemize}
 
@@ -79,7 +80,7 @@ para ejecutar el trabajo MapReduce y emitir el resultado.
 Para simplificar la ejecución del código y garantizar que la compilación del
 mismo sea consistente, se creó un archivo Dockerfile con dos etapas. La primera
 realiza la compilación de las clases y crea un jar. La segunda modifica la
-imagen docker.io/cloudera/quickstart:latest con el jar generado y agregando
+imagen cloudera/quickstart:latest con el jar generado y agregando
 un script entrypoint.sh encargado de iniciar el ambiente y ejecutar el trabajo
 MapReduce. Para crear dicha imagen basta con ejecutar el siguiente comando en
 la raíz del proyecto:
@@ -150,7 +151,11 @@ El comando para ejecutar el contenedor quedaría como se ve a continuación:
     language=bash,
     basicstyle=\small
 ]
- $ docker run --rm --hostname=quickstart.cloudera --privileged -v /path/to/dir/holding/log:/workspace/input quay.io/mmoltras/cloudera
+ $ docker run --rm \
+    --hostname=quickstart.cloudera \
+    --privileged \
+    -v /path/to/dir/holding/log:/workspace/input \
+    quay.io/mmoltras/cloudera
 \end{lstlisting}
 
 Una vez termina la ejecución se tendrá la cantidad de severidades que se
